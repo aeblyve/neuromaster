@@ -6,3 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+macroquad = "0.3"
+rust_nmap = { git = "https://github.com/leonidbelyaev/rust_nmap", branch="main" }
+kiss3d = "0.32"
+bytes = "*"
+domain = "*"
+fdg-sim = "0.8.0"
+petgraph = {version = "*", features = ["serde-1"]}
+serde_json = "*"
+nalgebra = "*"
