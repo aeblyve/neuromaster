@@ -15,3 +15,4 @@ fdg-sim = "0.8.0"
 petgraph = {version = "*", features = ["serde-1"]}
 serde_json = "*"
 nalgebra = "*"
+bimap = "0.6"

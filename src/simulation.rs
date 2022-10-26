@@ -1,5 +1,6 @@
 use domain::base::Dname;
 use fdg_sim::{ForceGraph, ForceGraphHelper, Simulation, SimulationParameters};
+use nalgebra::{Point3, Vector3};
 use petgraph::graph::NodeIndex;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -171,4 +172,59 @@ pub fn build_simulation(
             fdg_sim::force::fruchterman_reingold(3.0, 0.975),
         ),
     ))
+}
+
+/// Given a ray with origin and direction, find the closest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
+pub fn find_closest_intersection(
+    ray_origin: Point3<f32>,
+    ray_direction: Vector3<f32>,
+    simulation: &Simulation<SimpleHost, ()>,
+) -> Option<NodeIndex> {
+    let radius = 1.0; // magic number for now - might change with amount of edges?
+    let graph = simulation.get_graph();
+
+    let mut least_distance = f32::MAX;
+    let mut closest_node: Option<NodeIndex> = None;
+
+    for node_index in graph.node_indices() {
+        let node_weight = graph.node_weight(node_index).unwrap();
+        let sphere_center = Point3::new(
+            node_weight.location.x,
+            node_weight.location.y,
+            node_weight.location.z,
+        );
+        let difference: Vector3<f32> = ray_origin - sphere_center;
+        let difference_sqr = difference.dot(&difference);
+        let p = ray_direction.dot(&difference);
+
+        let determinant = p * p - difference_sqr + radius * radius;
+        println!(
+            "For the sphere centered at {}, determinant is {}",
+            sphere_center, determinant
+        );
+
+        // ... is this safe float-wise?
+        if determinant < 0.0 {
+            continue; // no (real) intersection
+        } else if determinant == 0.0 {
+            // one intersection, log it
+            let distance = ray_direction.scale(-1.0).dot(&difference);
+            least_distance = least_distance.min(distance);
+            if distance < least_distance {
+                least_distance = distance;
+                closest_node = Some(node_index);
+            }
+        } else {
+            // two intersections, log the closest one
+            let distance1 = ray_direction.scale(-1.0).dot(&difference) - determinant.sqrt();
+            let distance2 = ray_direction.scale(-1.0).dot(&difference) + determinant.sqrt();
+            let distance = distance1.min(distance2);
+
+            if distance < least_distance {
+                least_distance = distance;
+                closest_node = Some(node_index);
+            }
+        }
+    }
+    closest_node
 }
