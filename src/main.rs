@@ -12,17 +12,20 @@ use petgraph::stable_graph::EdgeIndex;
 use rust_nmap::parse_nmap_xml_bytes;
 use std::collections::HashMap;
 
+use kiss3d::conrod::widget_ids;
+
+use crate::gui::Ids;
+
 mod gui;
 mod simulation;
 
 // TODO: text on a mouse event
 
 fn main() {
-    //let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/scan.xml")).unwrap();
-    let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/huge.xml")).unwrap();
+    let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/scan.xml")).unwrap();
+    //let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/huge.xml")).unwrap();
     let mut simulation = simulation::build_simulation(full_parse).unwrap();
     let mut node_map = HashMap::<NodeIndex, SceneNode>::new();
-    //let mut node_scene_map = BiMap::<NodeIndex, SceneNode>::new();
 
     let mut window = Window::new("Neuroquad");
     let mut camera = kiss3d::camera::ArcBall::new(Point3::new(0.0f32, 0.0, -1.0), Point3::origin());
@@ -44,7 +47,10 @@ fn main() {
         scene_node
     }
 
+    let ids = Ids::new(window.conrod_ui_mut().widget_id_generator());
+    window.conrod_ui_mut().theme = gui::theme();
     let mut last_pos = kiss3d::nalgebra::Point2::new(0.0f32, 0.0f32);
+
     while window.render_with_camera(&mut camera) {
         for event in window.events().iter() {
             match event.value {
@@ -68,7 +74,7 @@ fn main() {
                         &simulation,
                     )
                     .unwrap();
-                    let mut scene_node = node_map.get_mut(&selected_node_index).unwrap();
+                    let scene_node = node_map.get_mut(&selected_node_index).unwrap();
                     scene_node.set_color(0.0, 0.0, 1.0);
                 }
                 WindowEvent::CursorPos(x, y, _modif) => {
@@ -77,9 +83,6 @@ fn main() {
                 _ => {}
             }
         }
-
-        //let mut ui = window.conrod_ui_mut().set_widgets();
-        //gui::gui(&mut ui, &ids, &mut gui::ApplicationState::new());
 
         simulation.update(0.035);
         let graph = simulation.get_graph();
@@ -111,4 +114,6 @@ fn main() {
             }
         }
     }
+    let mut ui = window.conrod_ui_mut().set_widgets();
+    gui::gui(&mut ui, &ids, &mut gui::ApplicationState::new());
 }
