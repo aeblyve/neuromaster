@@ -1,4 +1,6 @@
 use bimap::BiMap;
+use fdg_sim::petgraph::graph::NodeIndex;
+use fdg_sim::petgraph::stable_graph::EdgeIndex;
 use kiss3d::camera::*;
 use kiss3d::event::{Action, WindowEvent};
 use kiss3d::light::Light;
@@ -7,8 +9,6 @@ use kiss3d::nalgebra::{UnitQuaternion, Vector3};
 use kiss3d::scene::SceneNode;
 use kiss3d::window::Window;
 use macroquad::prelude::*;
-use petgraph::graph::NodeIndex;
-use petgraph::stable_graph::EdgeIndex;
 use rust_nmap::parse_nmap_xml_bytes;
 use std::collections::HashMap;
 

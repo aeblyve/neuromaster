@@ -1,7 +1,7 @@
 use domain::base::Dname;
+use fdg_sim::petgraph::graph::NodeIndex;
 use fdg_sim::{ForceGraph, ForceGraphHelper, Simulation, SimulationParameters};
 use kiss3d::nalgebra::{Point3, Vector3};
-use petgraph::graph::NodeIndex;
 use std::collections::HashMap;
 use std::net::IpAddr;
 
