@@ -1,6 +1,6 @@
 use domain::base::Dname;
 use fdg_sim::{ForceGraph, ForceGraphHelper, Simulation, SimulationParameters};
-use nalgebra::{Point3, Vector3};
+use kiss3d::nalgebra::{Point3, Vector3};
 use petgraph::graph::NodeIndex;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -9,7 +9,31 @@ use std::net::IpAddr;
 pub struct SimpleHost {
     pub main_addr: IpAddr,
     pub main_hostname: Option<Dname<Vec<u8>>>,
+    pub os_guess: Option<OsGuess>,
     pub rtt: Option<f32>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OsGuess {
+    LINUX(String),
+    FREEBSD(String),
+    OPENBSD(String),
+    OTHER(String),
+}
+
+impl OsGuess {
+    // This works fine if nobody trips LinuxFreeBSDOpenBSD in the nmap database :P
+    fn from_string(string: &String) -> OsGuess {
+        if string.contains("Linux") {
+            OsGuess::LINUX(string.to_string())
+        } else if string.contains("FreeBSD") {
+            OsGuess::FREEBSD(string.to_string())
+        } else if string.contains("OpenBSD") {
+            OsGuess::OPENBSD(string.to_string())
+        } else {
+            OsGuess::OTHER(string.to_string())
+        }
+    }
 }
 
 impl SimpleHost {
@@ -47,23 +71,26 @@ impl SimpleHost {
             _ => panic!("Unhandled addrtype. Stopping."),
         };
 
-        let hostname = host
-            .hostnames
-            .as_ref()
-            .ok_or("No hostnames in host")?
-            .hostname
-            .as_ref()
-            .ok_or("No hostname iter in hostnames")?
-            .into_iter()
-            .next()
-            .ok_or("No hostname in hostname")?
-            .name
-            .as_ref()
-            .ok_or("Hostname name is None")?;
+        let hostname = (|| {
+            host.hostnames
+                .as_ref()?
+                .hostname
+                .as_ref()?
+                .first()?
+                .name
+                .as_ref()
+        })();
+
+        let hostname = hostname.map(|hostname| Dname::from_chars(hostname.chars()).unwrap());
+
+        let os = (|| host.os.as_ref()?.osmatch.as_ref()?.first()?.name.as_ref())();
+
+        let os = os.map(|os| OsGuess::from_string(os));
 
         Ok(Self {
             main_addr: addr,
-            main_hostname: Some(Dname::from_chars(hostname.chars())?),
+            main_hostname: hostname,
+            os_guess: os,
             rtt: None,
         })
     }
@@ -79,6 +106,7 @@ impl SimpleHost {
         Ok(Self {
             main_addr: hop.ipaddr.as_ref().unwrap().parse().unwrap(),
             main_hostname: hostname,
+            os_guess: None,
             rtt: None,
         })
     }
@@ -87,6 +115,7 @@ impl SimpleHost {
         Ok(Self {
             main_addr: addr.parse()?,
             main_hostname: Some(Dname::from_chars(hostname.chars())?),
+            os_guess: None,
             rtt: None,
         })
     }
@@ -106,14 +135,7 @@ pub fn build_simulation(
     let localhost_addr = localhost.main_addr;
     insert(&mut map, &mut graph, localhost);
 
-    let max = 500;
-    let mut count = 0;
-
     for host in scan.host.as_ref().ok_or("Host given as None")? {
-        // if count > max {
-        //     break;
-        // }
-        count += 1;
         let main = SimpleHost::from_fullhost(host);
         match main {
             Err(e) => continue,
@@ -175,6 +197,7 @@ pub fn build_simulation(
 }
 
 /// Given a ray with origin and direction, find the closest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
+// TODO iterate over visible scenenodes using localtransform instead?
 pub fn find_closest_intersection(
     ray_origin: Point3<f32>,
     ray_direction: Vector3<f32>,

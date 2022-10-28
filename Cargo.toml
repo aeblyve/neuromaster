@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 macroquad = "0.3"
 rust_nmap = { git = "https://github.com/leonidbelyaev/rust_nmap", branch="main" }
-kiss3d = "0.32"
+kiss3d = {version = "0.31", features = ["conrod"]}
 bytes = "*"
 domain = "*"
 fdg-sim = "0.8.0"
