@@ -5,7 +5,7 @@ use kiss3d::nalgebra::{Point3, Vector3};
 use std::collections::HashMap;
 use std::net::IpAddr;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SimpleHost {
     pub main_addr: IpAddr,
     pub main_hostname: Option<Dname<Vec<u8>>>,
@@ -13,7 +13,7 @@ pub struct SimpleHost {
     pub rtt: Option<f32>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OsGuess {
     LINUX(String),
     FREEBSD(String),

@@ -1,3 +1,5 @@
+#![feature(fn_traits)]
+
 use bimap::BiMap;
 use fdg_sim::petgraph::graph::NodeIndex;
 use fdg_sim::petgraph::stable_graph::EdgeIndex;
@@ -20,10 +22,28 @@ use crate::gui::Ids;
 mod gui;
 mod simulation;
 
+const SELECTED_COLOR: (f32, f32, f32) = (0.0, 0.0, 1.0);
+const DEFAULT_COLOR: (f32, f32, f32) = (1.0, 0.0, 0.0);
+
+trait SceneNodeExt {
+    fn paint_default(&mut self);
+    fn paint_selected(&mut self);
+}
+
+impl SceneNodeExt for SceneNode {
+    fn paint_default(&mut self) {
+        self.set_color(DEFAULT_COLOR.0, DEFAULT_COLOR.1, DEFAULT_COLOR.2);
+    }
+
+    fn paint_selected(&mut self) {
+        self.set_color(SELECTED_COLOR.0, SELECTED_COLOR.1, SELECTED_COLOR.2);
+    }
+}
+
 fn main() {
     let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/scan.xml")).unwrap();
     //let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/huge.xml")).unwrap();
-    let mut simulation = simulation::build_simulation(full_parse).unwrap();
+    let simulation = simulation::build_simulation(full_parse).unwrap();
     let mut node_map = HashMap::<NodeIndex, SceneNode>::new();
 
     let mut window = Window::new("Neuroquad");
@@ -39,7 +59,7 @@ fn main() {
     // saves resources AND looks very "Neuromancer"
     fn wireframe_sphere(window: &mut Window) -> SceneNode {
         let mut scene_node = window.add_sphere(1.0);
-        scene_node.set_color(1.0, 0.0, 0.0);
+        scene_node.paint_default();
         scene_node.set_points_size(10.0);
         scene_node.set_lines_width(1.0);
         scene_node.set_surface_rendering_activation(false);
@@ -71,16 +91,25 @@ fn main() {
                         ray_origin, ray_direction
                     );
 
-                    // TODO logic like deselect last selected
-                    application_state.node_selected = simulation::find_closest_intersection(
+                    let new_node_selected = simulation::find_closest_intersection(
                         ray_origin,
                         ray_direction,
                         &application_state.simulation,
                     );
-                    let scene_node = node_map
-                        .get_mut(&application_state.node_selected.unwrap())
-                        .unwrap();
-                    scene_node.set_color(0.0, 0.0, 1.0);
+
+                    if new_node_selected.is_some() {
+                        if application_state.node_selected.is_some() {
+                            node_map
+                                .get_mut(&application_state.node_selected.unwrap())
+                                .unwrap()
+                                .paint_default();
+                        }
+                        application_state.node_selected = new_node_selected;
+                        node_map
+                            .get_mut(&application_state.node_selected.unwrap())
+                            .unwrap()
+                            .paint_selected();
+                    }
                 }
                 WindowEvent::CursorPos(x, y, _modif) => {
                     last_pos = kiss3d::nalgebra::Point2::new(x as f32, y as f32);
