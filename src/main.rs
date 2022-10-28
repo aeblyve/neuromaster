@@ -11,6 +11,7 @@ use kiss3d::window::Window;
 use macroquad::prelude::*;
 use rust_nmap::parse_nmap_xml_bytes;
 use std::collections::HashMap;
+use std::path::Path;
 
 use kiss3d::conrod::widget_ids;
 
@@ -18,8 +19,6 @@ use crate::gui::Ids;
 
 mod gui;
 mod simulation;
-
-// TODO: text on a mouse event
 
 fn main() {
     let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/scan.xml")).unwrap();
@@ -49,6 +48,9 @@ fn main() {
 
     let ids = Ids::new(window.conrod_ui_mut().widget_id_generator());
     window.conrod_ui_mut().theme = gui::theme();
+
+    let mut application_state = gui::ApplicationState::new(simulation);
+
     let mut last_pos = kiss3d::nalgebra::Point2::new(0.0f32, 0.0f32);
 
     while window.render_with_camera(&mut camera) {
@@ -68,13 +70,16 @@ fn main() {
                         "Created ray with origin {} and direction {}",
                         ray_origin, ray_direction
                     );
-                    let selected_node_index = simulation::find_closest_intersection(
+
+                    // TODO logic like deselect last selected
+                    application_state.node_selected = simulation::find_closest_intersection(
                         ray_origin,
                         ray_direction,
-                        &simulation,
-                    )
-                    .unwrap();
-                    let scene_node = node_map.get_mut(&selected_node_index).unwrap();
+                        &application_state.simulation,
+                    );
+                    let scene_node = node_map
+                        .get_mut(&application_state.node_selected.unwrap())
+                        .unwrap();
                     scene_node.set_color(0.0, 0.0, 1.0);
                 }
                 WindowEvent::CursorPos(x, y, _modif) => {
@@ -84,8 +89,8 @@ fn main() {
             }
         }
 
-        simulation.update(0.035);
-        let graph = simulation.get_graph();
+        application_state.simulation.update(0.035);
+        let graph = application_state.simulation.get_graph();
         for node_index in graph.node_indices() {
             let node_weight = graph.node_weight(node_index).unwrap();
             let scene_node = node_map.get_mut(&node_index).unwrap();
@@ -113,7 +118,7 @@ fn main() {
                 );
             }
         }
+        let mut ui = window.conrod_ui_mut().set_widgets();
+        gui::gui(&mut ui, &ids, &mut application_state);
     }
-    let mut ui = window.conrod_ui_mut().set_widgets();
-    gui::gui(&mut ui, &ids, &mut gui::ApplicationState::new());
 }

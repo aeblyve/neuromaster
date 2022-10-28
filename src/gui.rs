@@ -1,3 +1,5 @@
+use fdg_sim::petgraph::graph::NodeIndex;
+use fdg_sim::Simulation;
 use kiss3d::conrod;
 use kiss3d::conrod::color::Color;
 use kiss3d::conrod::position::Positionable;
@@ -5,6 +7,8 @@ use kiss3d::conrod::widget_ids;
 use kiss3d::light::Light;
 use kiss3d::window::Window;
 use std::path::Path;
+
+use crate::simulation::SimpleHost;
 
 pub fn theme() -> conrod::Theme {
     use conrod::position::{Align, Direction, Padding, Position, Relative};
@@ -31,16 +35,30 @@ pub fn theme() -> conrod::Theme {
 widget_ids! {
     pub struct Ids {
         canvas, // backdrop for other widgets
+        ip_text,
     }
 }
 
 pub struct ApplicationState {
-    ip_selected: Option<String>,
+    pub simulation: Simulation<SimpleHost, ()>,
+    pub node_selected: Option<fdg_sim::petgraph::graph::NodeIndex>,
 }
 
 impl ApplicationState {
-    pub fn new() -> Self {
-        ApplicationState { ip_selected: None }
+    pub fn new(simulation: Simulation<SimpleHost, ()>) -> Self {
+        ApplicationState {
+            simulation,
+            node_selected: None,
+        }
+    }
+
+    pub fn selected_ip(&self) -> String {
+        let graph = self.simulation.get_graph();
+
+        match self.node_selected {
+            None => String::from(""),
+            Some(n) => graph.node_weight(n).unwrap().data.main_addr.to_string(),
+        }
     }
 }
 
@@ -53,7 +71,22 @@ pub fn gui(ui: &mut conrod::UiCell, ids: &Ids, state: &mut ApplicationState) {
     widget::Canvas::new()
         .pad(MARGIN)
         .align_right()
-        .w(600.0)
+        .w(200.0)
         .scroll_kids_vertically()
         .set(ids.canvas, ui);
+
+    // foo
+    for event in widget::TextBox::new(&state.selected_ip())
+        .mid_top_of(ids.canvas)
+        .align_middle_x_of(ids.canvas)
+        .padded_w_of(ids.canvas, MARGIN)
+        .h(40.0)
+        .set(ids.ip_text, ui)
+    {
+        use conrod::widget::text_box::Event;
+        match event {
+            Event::Enter => {}
+            Event::Update(s) => {}
+        }
+    }
 }
