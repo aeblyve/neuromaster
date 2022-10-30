@@ -66,7 +66,7 @@ fn main() {
     let simulation = simulation::build_simulation(full_parse).unwrap();
     let mut node_map = HashMap::<NodeIndex, SceneNode>::new();
 
-    let mut window = Window::new("Neuroquad");
+    let mut window = Window::new("Neuromaster");
 
     let tux_texture = window.alloc_conrod_texture(include_bytes!("../assets/tux.png"), "tux");
     let puffy_texture = window.alloc_conrod_texture(include_bytes!("../assets/puffy.png"), "puffy");
@@ -266,6 +266,19 @@ impl ApplicationState {
         }
     }
 
+    pub fn set_os_texture(&mut self) {
+        let setting = match self.get_selected_os() {
+            None => None,
+            Some(guess) => match guess {
+                OsGuess::LINUX(_) => Some(self.tux_texture),
+                OsGuess::FREEBSD(_) => Some(self.daemon_texture),
+                OsGuess::OPENBSD(_) => Some(self.puffy_texture),
+                OsGuess::OTHER(_) | OsGuess::NONE => None, // TODO
+            },
+        };
+        self.selected_os_texture = setting;
+    }
+
     /// Set the selected node(index) to the given one. Paints scene nodes accordingly.
     pub fn set_selected_node(
         &mut self,
@@ -287,10 +300,8 @@ impl ApplicationState {
                 .unwrap()
                 .paint_selected();
         }
+        self.set_os_texture();
     }
-
-    /// Set the current os_texture based on the guess.
-    // fn set_os_texture()
 
     pub fn gui(&mut self, ui: &mut conrod::UiCell, ids: &Ids) {
         use conrod::{widget, Colorable, Labelable, Sizeable, Widget};
@@ -320,6 +331,14 @@ impl ApplicationState {
                     Event::Update(s) => {}
                 }
             }
+        }
+
+        if self.selected_os_texture.is_some() {
+            widget::Image::new(self.selected_os_texture.unwrap())
+                .w_h(144.0, 144.0)
+                .down(20.0)
+                .align_middle_x_of(ids.canvas)
+                .set(ids.os_image, ui);
         }
     }
 
