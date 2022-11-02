@@ -84,7 +84,6 @@ impl SimpleHost {
 
         let hostname = hostname.map(|hostname| Dname::from_chars(hostname.chars()).unwrap());
 
-        // TODO if <os> exists, but is empty, osguess is NONE (not option)
         let os = (|| host.os.as_ref()?.osmatch.as_ref()?.first()?.name.as_ref())();
 
         let os = os.map(|os| OsGuess::from_string(os));

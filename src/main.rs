@@ -30,10 +30,6 @@ mod simulation;
 const SELECTED_COLOR: (f32, f32, f32) = (0.0, 0.0, 1.0);
 const DEFAULT_COLOR: (f32, f32, f32) = (1.0, 0.0, 0.0);
 
-// TODO refactor gui.rs into main.rs
-// main function creates a state and event loop, dispatching to the state struct's methods to actually do stuff with render-level info
-// Also, create "set_selected_as_intersection" or somesuch
-
 trait WindowExt {
     fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> kiss3d::conrod::image::Id;
 }
@@ -112,7 +108,9 @@ fn main() {
         for event in window.events().iter() {
             match event.value {
                 WindowEvent::FramebufferSize(x, y) => {
-                    println!("Frame buffer is {}x{}", x, y);
+                    println!("Frame buffer is {}x{}. Resizing.", x, y);
+                    let mut ui = window.conrod_ui_mut().set_widgets();
+                    application_state.gui(&mut ui, &ids);
                 }
                 WindowEvent::MouseButton(button, Action::Press, modif) => {
                     println!("Mouse press event on {:?} with {:?}", button, modif);
