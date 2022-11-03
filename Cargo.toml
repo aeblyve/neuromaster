@@ -11,7 +11,7 @@ rust_nmap = { git = "https://github.com/leonidbelyaev/rust_nmap", branch="main" 
 kiss3d = {version = "0.31", features = ["conrod"]}
 bytes = "*"
 domain = "*"
-fdg-sim = "0.8.0"
+fdg-sim = "0.9.0"
 petgraph = {version = "*", features = ["serde-1"]}
 serde_json = "*"
 nalgebra = "*"

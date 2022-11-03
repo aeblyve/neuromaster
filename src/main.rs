@@ -16,6 +16,8 @@ use std::collections::HashMap;
 use fdg_sim::Simulation;
 use kiss3d::conrod::position::Positionable;
 use kiss3d::conrod::widget_ids;
+use std::env;
+use std::fs;
 
 use crate::simulation::{OsGuess, SimpleHost};
 
@@ -56,8 +58,20 @@ impl SceneNodeExt for SceneNode {
 }
 
 fn main() {
-    let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/bigger.xml")).unwrap();
-    //let full_parse = parse_nmap_xml_bytes(include_bytes!("../assets/huge.xml")).unwrap();
+    let args: Vec<String> = env::args().collect();
+    let mut scan_file;
+    if args.len() > 1 {
+        scan_file = &args[1];
+    }
+
+    let scan_bytes = if args.len() > 1 {
+        let scan_file = &args[1];
+        fs::read(scan_file).expect("Failed to read specified file!")
+    } else {
+        include_bytes!("../assets/scan.xml").to_vec()
+    };
+
+    let full_parse = parse_nmap_xml_bytes(&scan_bytes).unwrap();
     let simulation = simulation::build_simulation(full_parse).unwrap();
     let mut node_map = HashMap::<NodeIndex, SceneNode>::new();
 
@@ -203,7 +217,7 @@ pub fn theme() -> conrod::Theme {
 
 widget_ids! {
     pub struct Ids {
-        canvas, // backdrop for other widgets
+        canvas,
         ip_text,
         os_image,
         label_toggle,
@@ -383,10 +397,6 @@ impl ApplicationState {
             let p = ray_direction.dot(&difference);
 
             let determinant = p * p - difference_sqr + radius * radius;
-            println!(
-                "For the sphere centered at {}, determinant is {}",
-                sphere_center, determinant
-            );
 
             if determinant.abs() < f32::EPSILON {
                 let distance = ray_direction.scale(-1.0).dot(&difference);

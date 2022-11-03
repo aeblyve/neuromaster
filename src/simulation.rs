@@ -125,7 +125,9 @@ pub fn build_simulation(
     let localhost_addr = localhost.main_addr;
     insert(&mut map, &mut graph, localhost);
 
-    for host in scan.host.as_ref().ok_or("Host given as None")? {
+    let host_list = scan.host.as_ref().ok_or("Could not find scan host list.")?;
+
+    for host in host_list {
         let main = SimpleHost::from_fullhost(host);
         match main {
             Err(e) => continue,
