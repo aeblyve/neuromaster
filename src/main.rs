@@ -137,35 +137,43 @@ fn main() {
         for node_index in graph.node_indices() {
             let node_weight = graph.node_weight(node_index).unwrap();
             let scene_node = application_state.node_map.get_mut(&node_index).unwrap();
+
             let translation = Translation3::new(
                 node_weight.location.x,
                 node_weight.location.y,
                 node_weight.location.z,
             );
             scene_node.set_local_translation(translation);
+            let node_location = &Point3::new(
+                node_weight.location.x,
+                node_weight.location.y,
+                node_weight.location.z,
+            );
+
+            if application_state.label_nodes {
+                let node_projection = camera.project(node_location, &window_size);
+                let screen_position = &Point2::new(
+                    2.0 * node_projection.x,
+                    2.0 * (window_size.y - node_projection.y),
+                );
+
+                window.draw_text(
+                    node_weight.data.main_addr.to_string().as_str(),
+                    &screen_position,
+                    24.0,
+                    &font,
+                    &TEXT_COLOR,
+                );
+            }
 
             for neighbor_index in graph.neighbors(node_index) {
                 let neighbor_weight = &graph.node_weight(neighbor_index).unwrap();
-                let node_location = &Point3::new(
-                    node_weight.location.x,
-                    node_weight.location.y,
-                    node_weight.location.z,
-                );
                 let neighbor_location = &Point3::new(
                     neighbor_weight.location.x,
                     neighbor_weight.location.y,
                     neighbor_weight.location.z,
                 );
                 window.draw_line(node_location, neighbor_location, &LINE_COLOR);
-                let node_projection = camera.project(node_location, &window_size);
-                // may need to offset a bit
-                // window.draw_text(
-                //     node_weight.data.main_addr.to_string().as_str(),
-                //     &node_projection.into(),
-                //     1.0,
-                //     &font,
-                //     &TEXT_COLOR,
-                // );
             }
         }
     }
@@ -198,6 +206,7 @@ widget_ids! {
         canvas, // backdrop for other widgets
         ip_text,
         os_image,
+        label_toggle,
     }
 }
 
@@ -206,9 +215,10 @@ pub struct ApplicationState {
     node_selected: Option<fdg_sim::petgraph::graph::NodeIndex>,
     node_map: HashMap<NodeIndex, SceneNode>,
     selected_os_texture: Option<kiss3d::conrod::image::Id>,
-    tux_texture: kiss3d::conrod::image::Id,
-    puffy_texture: kiss3d::conrod::image::Id,
-    daemon_texture: kiss3d::conrod::image::Id,
+    tux_texture: image::Id,
+    puffy_texture: image::Id,
+    daemon_texture: image::Id,
+    label_nodes: bool,
 }
 
 impl ApplicationState {
@@ -227,6 +237,7 @@ impl ApplicationState {
             tux_texture,
             puffy_texture,
             daemon_texture,
+            label_nodes: true,
         }
     }
 
@@ -236,7 +247,9 @@ impl ApplicationState {
         ray_direction: Vector3<f32>,
     ) {
         let int = self.find_nearest_intersection(ray_origin, ray_direction);
-        self.set_selected_node(int);
+        if int.is_some() {
+            self.set_selected_node(int);
+        }
     }
 
     /// Return the required IP for the current selected node, if it exists.
@@ -271,7 +284,7 @@ impl ApplicationState {
     }
 
     pub fn set_os_texture(&mut self) {
-        let setting = match self.get_selected_os() {
+        self.selected_os_texture = match self.get_selected_os() {
             None => None,
             Some(guess_option) => match guess_option {
                 None => None,
@@ -283,7 +296,6 @@ impl ApplicationState {
                 },
             },
         };
-        self.selected_os_texture = setting;
     }
 
     /// Set the selected node(index) to the given one. Paints scene nodes accordingly.
@@ -300,8 +312,6 @@ impl ApplicationState {
 
         self.node_selected = selected_node;
         if self.node_selected.is_some() {
-            let graph = self.simulation.get_graph();
-            let node_weight = graph.node_weight(selected_node.unwrap()).unwrap();
             self.node_map
                 .get_mut(&self.node_selected.unwrap())
                 .unwrap()
