@@ -235,6 +235,7 @@ impl ApplicationState {
         self.set_selected_node(int);
     }
 
+    /// Return the required IP for the current selected node, if it exists.
     pub fn get_selected_ip(&self) -> Option<String> {
         self.node_selected.map(|n| {
             self.simulation
@@ -247,7 +248,8 @@ impl ApplicationState {
         })
     }
 
-    pub fn get_selected_os(&self) -> Option<OsGuess> {
+    /// Return the optional OsGuess for the current selected node, if it exists.
+    pub fn get_selected_os(&self) -> Option<Option<OsGuess>> {
         match self.node_selected {
             None => None,
             Some(n) => {
@@ -259,7 +261,7 @@ impl ApplicationState {
                     .data
                     .os_guess
                     .clone();
-                guess
+                Some(guess)
             }
         }
     }
@@ -267,11 +269,11 @@ impl ApplicationState {
     pub fn set_os_texture(&mut self) {
         let setting = match self.get_selected_os() {
             None => None,
-            Some(guess) => match guess {
+            Some(guess) => match guess.unwrap() {
                 OsGuess::LINUX(_) => Some(self.tux_texture),
                 OsGuess::FREEBSD(_) => Some(self.daemon_texture),
                 OsGuess::OPENBSD(_) => Some(self.puffy_texture),
-                OsGuess::OTHER(_) | OsGuess::NONE => None, // TODO
+                OsGuess::OTHER(_) => None,
             },
         };
         self.selected_os_texture = setting;
@@ -341,7 +343,6 @@ impl ApplicationState {
     }
 
     /// Given a ray with origin and direction, find the closest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
-    // TODO iterate over visible scenenodes using localtransform instead?
     pub fn find_closest_intersection(
         &self,
         ray_origin: Point3<f32>,

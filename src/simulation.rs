@@ -19,7 +19,6 @@ pub enum OsGuess {
     FREEBSD(String),
     OPENBSD(String),
     OTHER(String),
-    NONE, // having no guess and guessing none are different!
 }
 
 impl OsGuess {
