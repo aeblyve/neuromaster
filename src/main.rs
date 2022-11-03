@@ -30,6 +30,8 @@ mod simulation;
 const SELECTED_COLOR: (f32, f32, f32) = (0.0, 0.0, 1.0);
 const DEFAULT_COLOR: (f32, f32, f32) = (1.0, 0.0, 0.0);
 
+const NODE_RADIUS: f32 = 1.0;
+
 trait WindowExt {
     fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> kiss3d::conrod::image::Id;
 }
@@ -80,7 +82,7 @@ fn main() {
 
     // saves resources AND looks very "Neuromancer"
     fn wireframe_sphere(window: &mut Window) -> SceneNode {
-        let mut scene_node = window.add_sphere(1.0);
+        let mut scene_node = window.add_sphere(NODE_RADIUS);
         scene_node.paint_default();
         scene_node.set_points_size(10.0);
         scene_node.set_lines_width(1.0);
@@ -231,7 +233,7 @@ impl ApplicationState {
         ray_origin: Point3<f32>,
         ray_direction: Vector3<f32>,
     ) {
-        let int = self.find_closest_intersection(ray_origin, ray_direction);
+        let int = self.find_nearest_intersection(ray_origin, ray_direction);
         self.set_selected_node(int);
     }
 
@@ -342,17 +344,17 @@ impl ApplicationState {
         }
     }
 
-    /// Given a ray with origin and direction, find the closest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
-    pub fn find_closest_intersection(
+    /// Given a ray with origin and direction, find the nearest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
+    pub fn find_nearest_intersection(
         &self,
         ray_origin: Point3<f32>,
         ray_direction: Vector3<f32>,
     ) -> Option<NodeIndex> {
-        let radius = 1.0; // magic number for now - might change with amount of edges?
         let graph = self.simulation.get_graph();
+        let radius = NODE_RADIUS;
 
         let mut least_distance = f32::MAX;
-        let mut closest_node: Option<NodeIndex> = None;
+        let mut nearest_node: Option<NodeIndex> = None;
 
         for node_index in graph.node_indices() {
             let node_weight = graph.node_weight(node_index).unwrap();
@@ -371,28 +373,26 @@ impl ApplicationState {
                 sphere_center, determinant
             );
 
-            if determinant < 0.0 {
-                continue; // no (real) intersection
-            } else if determinant.abs() < f32::EPSILON {
-                // one intersection, log it
+            if determinant.abs() < f32::EPSILON {
                 let distance = ray_direction.scale(-1.0).dot(&difference);
                 least_distance = least_distance.min(distance);
                 if distance < least_distance {
                     least_distance = distance;
-                    closest_node = Some(node_index);
+                    nearest_node = Some(node_index);
                 }
+            } else if determinant < 0.0 {
+                continue;
             } else {
-                // two intersections, log the closest one
                 let distance1 = ray_direction.scale(-1.0).dot(&difference) - determinant.sqrt();
                 let distance2 = ray_direction.scale(-1.0).dot(&difference) + determinant.sqrt();
                 let distance = distance1.min(distance2);
 
                 if distance < least_distance {
                     least_distance = distance;
-                    closest_node = Some(node_index);
+                    nearest_node = Some(node_index);
                 }
             }
         }
-        closest_node
+        nearest_node
     }
 }
