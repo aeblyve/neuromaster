@@ -4,6 +4,8 @@ use fdg_sim::petgraph::graph::NodeIndex;
 use kiss3d::camera::*;
 use kiss3d::conrod;
 use kiss3d::conrod::image;
+use kiss3d::event::Modifiers;
+use kiss3d::event::MouseButton;
 use kiss3d::event::{Action, WindowEvent};
 use kiss3d::light::Light;
 use kiss3d::nalgebra::{Point2, Point3, Translation3, UnitQuaternion, Vector2, Vector3};
@@ -127,14 +129,13 @@ fn main() {
                     application_state.gui(&mut ui, &ids);
                     window_size = Vector2::new(x as f32, y as f32);
                 }
-                WindowEvent::MouseButton(button, Action::Press, modif) => {
-                    println!("Mouse press event on {:?} with {:?}", button, modif);
+                WindowEvent::MouseButton(
+                    MouseButton::Button1,
+                    Action::Press,
+                    Modifiers::Control,
+                ) => {
                     let (ray_origin, ray_direction) = camera.unproject(&last_pos, &window_size);
 
-                    println!(
-                        "Created ray with origin {} and direction {}",
-                        ray_origin, ray_direction
-                    );
                     application_state.select_nearest_intersection(ray_origin, ray_direction);
                     let mut ui = window.conrod_ui_mut().set_widgets();
                     application_state.gui(&mut ui, &ids);
@@ -261,9 +262,7 @@ impl ApplicationState {
         ray_direction: Vector3<f32>,
     ) {
         let int = self.find_nearest_intersection(ray_origin, ray_direction);
-        if int.is_some() {
-            self.set_selected_node(int);
-        }
+        self.set_selected_node(int);
     }
 
     /// Return the required IP for the current selected node, if it exists.
