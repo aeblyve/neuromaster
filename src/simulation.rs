@@ -38,32 +38,25 @@ impl OsGuess {
 
 impl SimpleHost {
     pub fn from_fullhost(host: &rust_nmap::host) -> Result<Self, Box<dyn std::error::Error>> {
-        let status = host
-            .status
-            .as_ref()
-            .ok_or("Host has no status.")?
-            .state
-            .as_ref()
-            .ok_or("Host status has no state")?;
+        let status =
+            (|| host.status.as_ref()?.state.as_ref())().ok_or("Failed to find host status")?;
 
-        match status.as_str() {
-            "down" => return Err("Fullhost is down".into()),
-            _ => {}
+        if status.as_str() == "down" {
+            return Err("Host is down".into());
         }
 
-        let address_box = host
-            .address
-            .as_ref()
-            .ok_or("No host address spec")?
-            .into_iter()
-            .next()
-            .ok_or("No host address")?;
+        let address_box =
+            (|| host.address.as_ref()?.first())().ok_or("Failed to find host address.")?;
 
         let addrtype = address_box
             .addrtype
             .as_ref()
-            .ok_or("No addrtype in address")?;
-        let addr_str = address_box.addr.as_ref().ok_or("No addr in address")?;
+            .ok_or("Failed to find host address type.")?;
+
+        let addr_str = address_box
+            .addr
+            .as_ref()
+            .ok_or("Failed to find host address.")?;
 
         let addr = match addrtype.as_str() {
             "ipv4" => IpAddr::V4(addr_str.parse()?),
@@ -79,13 +72,13 @@ impl SimpleHost {
                 .first()?
                 .name
                 .as_ref()
-        })();
+        })()
+        .map(|hostname| {
+            Dname::from_chars(hostname.chars()).expect("Could not parse hostname. Stopping.")
+        });
 
-        let hostname = hostname.map(|hostname| Dname::from_chars(hostname.chars()).unwrap());
-
-        let os = (|| host.os.as_ref()?.osmatch.as_ref()?.first()?.name.as_ref())();
-
-        let os = os.map(|os| OsGuess::from_string(os));
+        let os = (|| host.os.as_ref()?.osmatch.as_ref()?.first()?.name.as_ref())()
+            .map(|os| OsGuess::from_string(os));
 
         Ok(Self {
             main_addr: addr,
@@ -96,12 +89,9 @@ impl SimpleHost {
     }
 
     pub fn from_hop(hop: &rust_nmap::hop) -> Result<Self, Box<dyn std::error::Error>> {
-        let hostname = match hop.host.as_ref() {
-            Some(_) => Some(Dname::<Vec<u8>>::from_chars(
-                hop.host.as_ref().unwrap().chars(),
-            )?),
-            None => None,
-        };
+        let hostname = hop.host.as_ref().map(|host| {
+            Dname::<Vec<u8>>::from_chars(host.chars()).expect("Could not parse hostname. Stopping.")
+        });
 
         Ok(Self {
             main_addr: hop.ipaddr.as_ref().unwrap().parse().unwrap(),
@@ -144,13 +134,8 @@ pub fn build_simulation(
         insert(&mut map, &mut graph, main?);
 
         let mut origin_addr = localhost_addr;
-        for hop in host
-            .trace
-            .as_ref()
-            .ok_or("Trace was none in host")?
-            .hops
-            .as_ref()
-            .ok_or("Hops was none in trace")?
+        for hop in
+            (|| host.trace.as_ref()?.hops.as_ref())().expect("Could not find host traceroute hops.")
         {
             let hop_host = SimpleHost::from_hop(hop)?;
             let hop_addr = hop_host.main_addr;
