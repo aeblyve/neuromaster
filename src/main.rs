@@ -8,7 +8,7 @@ use kiss3d::event::Modifiers;
 use kiss3d::event::MouseButton;
 use kiss3d::event::{Action, WindowEvent};
 use kiss3d::light::Light;
-use kiss3d::nalgebra::{Point2, Point3, Translation3, UnitQuaternion, Vector2, Vector3};
+use kiss3d::nalgebra::{Point2, Point3, Translation3, Vector2, Vector3};
 use kiss3d::resource::TextureManager;
 use kiss3d::scene::SceneNode;
 use kiss3d::window::Window;
@@ -120,7 +120,6 @@ fn main() {
         for event in window.events().iter() {
             match event.value {
                 WindowEvent::FramebufferSize(x, y) => {
-                    println!("Frame buffer is {}x{}. Resizing.", x, y);
                     let mut ui = window.conrod_ui_mut().set_widgets();
                     application_state.gui(&mut ui, &ids);
                     window_size = Vector2::new(x as f32, y as f32);
@@ -170,7 +169,7 @@ fn main() {
 
                 window.draw_text(
                     node_weight.data.main_addr.to_string().as_str(),
-                    &screen_position,
+                    screen_position,
                     24.0,
                     &font,
                     &TEXT_COLOR,
@@ -300,10 +299,10 @@ impl ApplicationState {
             Some(guess_option) => match guess_option {
                 None => None,
                 Some(guess) => match guess {
-                    OsGuess::LINUX(_) => Some(self.tux_texture),
-                    OsGuess::FREEBSD(_) => Some(self.daemon_texture),
-                    OsGuess::OPENBSD(_) => Some(self.puffy_texture),
-                    OsGuess::OTHER(_) => None,
+                    OsGuess::Linux(_) => Some(self.tux_texture),
+                    OsGuess::Freebsd(_) => Some(self.daemon_texture),
+                    OsGuess::Openbsd(_) => Some(self.puffy_texture),
+                    OsGuess::Other(_) => None,
                 },
             },
         };
@@ -332,8 +331,7 @@ impl ApplicationState {
     }
 
     pub fn gui(&mut self, ui: &mut conrod::UiCell, ids: &Ids) {
-        use conrod::{widget, Colorable, Labelable, Sizeable, Widget};
-        use std::iter::once;
+        use conrod::{widget, Sizeable, Widget};
 
         const MARGIN: conrod::Scalar = 10.0;
 
@@ -358,12 +356,12 @@ impl ApplicationState {
             if os.is_some() && os.as_ref().unwrap().is_some() {
                 let os_string = match os.as_ref().unwrap().as_ref().unwrap() {
                     // seems required, unfortunately
-                    OsGuess::LINUX(string)
-                    | OsGuess::FREEBSD(string)
-                    | OsGuess::OPENBSD(string)
-                    | OsGuess::OTHER(string) => string,
+                    OsGuess::Linux(string)
+                    | OsGuess::Freebsd(string)
+                    | OsGuess::Openbsd(string)
+                    | OsGuess::Other(string) => string,
                 };
-                widget::Text::new(format!("OS: {}", os_string).as_str())
+                widget::Text::new(format!("OS: {os_string}").as_str())
                     .mid_top_of(ids.canvas)
                     .align_middle_x_of(ids.canvas)
                     .padded_w_of(ids.canvas, MARGIN)

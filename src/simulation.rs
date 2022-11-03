@@ -1,7 +1,6 @@
 use domain::base::Dname;
 use fdg_sim::petgraph::graph::NodeIndex;
 use fdg_sim::{ForceGraph, ForceGraphHelper, Simulation, SimulationParameters};
-use kiss3d::nalgebra::{Point3, Vector3};
 use std::collections::HashMap;
 use std::net::IpAddr;
 
@@ -15,23 +14,23 @@ pub struct SimpleHost {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum OsGuess {
-    LINUX(String),
-    FREEBSD(String),
-    OPENBSD(String),
-    OTHER(String),
+    Linux(String),
+    Freebsd(String),
+    Openbsd(String),
+    Other(String),
 }
 
 impl OsGuess {
     // This works fine if nobody trips LinuxFreeBSDOpenBSD in the nmap database :P
     fn from_string(string: &String) -> OsGuess {
         if string.contains("Linux") {
-            OsGuess::LINUX(string.to_string())
+            OsGuess::Linux(string.to_string())
         } else if string.contains("FreeBSD") {
-            OsGuess::FREEBSD(string.to_string())
+            OsGuess::Freebsd(string.to_string())
         } else if string.contains("OpenBSD") {
-            OsGuess::OPENBSD(string.to_string())
+            OsGuess::Openbsd(string.to_string())
         } else {
-            OsGuess::OTHER(string.to_string())
+            OsGuess::Other(string.to_string())
         }
     }
 }
@@ -129,9 +128,8 @@ pub fn build_simulation(
 
     for host in host_list {
         let main = SimpleHost::from_fullhost(host);
-        match main {
-            Err(e) => continue,
-            _ => {}
+        if let Err(_) = main {
+            continue;
         }
         insert(&mut map, &mut graph, main?);
 
@@ -159,7 +157,7 @@ pub fn build_simulation(
         }
     }
 
-    println!("{:#?}", graph);
+    println!("{graph:#?}");
 
     fn insert(
         map: &mut HashMap<IpAddr, NodeIndex>,
