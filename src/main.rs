@@ -61,10 +61,6 @@ impl SceneNodeExt for SceneNode {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut scan_file;
-    if args.len() > 1 {
-        scan_file = &args[1];
-    }
 
     let scan_bytes = if args.len() > 1 {
         let scan_file = &args[1];
