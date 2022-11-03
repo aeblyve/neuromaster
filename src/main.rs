@@ -387,6 +387,7 @@ impl ApplicationState {
     }
 
     /// Given a ray with origin and direction, find the nearest node (modeled as a sphere centered on node.location) in the simulation intersecting the ray, if it exists.
+    /// Ignores negative-distance intersections.
     pub fn find_nearest_intersection(
         &self,
         ray_origin: Point3<f32>,
@@ -410,25 +411,22 @@ impl ApplicationState {
             let p = ray_direction.dot(&difference);
 
             let determinant = p * p - difference_sqr + radius * radius;
+            let distance: f32;
 
             if determinant.abs() < f32::EPSILON {
-                let distance = ray_direction.scale(-1.0).dot(&difference);
-                least_distance = least_distance.min(distance);
-                if distance < least_distance {
-                    least_distance = distance;
-                    nearest_node = Some(node_index);
-                }
+                distance = ray_direction.scale(-1.0).dot(&difference);
             } else if determinant < 0.0 {
                 continue;
             } else {
                 let distance1 = ray_direction.scale(-1.0).dot(&difference) - determinant.sqrt();
                 let distance2 = ray_direction.scale(-1.0).dot(&difference) + determinant.sqrt();
-                let distance = distance1.min(distance2);
+                distance = distance1.min(distance2);
+            }
 
-                if distance < least_distance {
-                    least_distance = distance;
-                    nearest_node = Some(node_index);
-                }
+            // Negative distance is valid in principle, but not useful for object selection
+            if distance > 0.0 && distance < least_distance {
+                least_distance = distance;
+                nearest_node = Some(node_index);
             }
         }
         nearest_node
