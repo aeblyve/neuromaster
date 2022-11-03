@@ -222,6 +222,7 @@ widget_ids! {
         ip_text,
         os_image,
         label_toggle,
+        tutorial
     }
 }
 
@@ -346,29 +347,37 @@ impl ApplicationState {
             .scroll_kids_vertically()
             .set(ids.canvas, ui);
 
-        let ip = self.get_selected_ip();
-        if ip.is_some() {
-            for event in widget::TextBox::new(&ip.unwrap())
+        if self.node_selected.is_some() {
+            let ip = self.get_selected_ip();
+            if ip.is_some() {
+                for event in widget::TextBox::new(&ip.unwrap())
+                    .mid_top_of(ids.canvas)
+                    .align_middle_x_of(ids.canvas)
+                    .padded_w_of(ids.canvas, MARGIN)
+                    .h(40.0)
+                    .set(ids.ip_text, ui)
+                {
+                    use conrod::widget::text_box::Event;
+                    match event {
+                        Event::Enter => {}
+                        Event::Update(s) => {}
+                    }
+                }
+            }
+            if self.selected_os_texture.is_some() {
+                widget::Image::new(self.selected_os_texture.unwrap())
+                    .w_h(144.0, 144.0)
+                    .down(20.0)
+                    .align_middle_x_of(ids.canvas)
+                    .set(ids.os_image, ui);
+            }
+        } else {
+            widget::Text::new("Select a node with Ctrl+LMB to learn more about it.")
                 .mid_top_of(ids.canvas)
                 .align_middle_x_of(ids.canvas)
                 .padded_w_of(ids.canvas, MARGIN)
                 .h(40.0)
-                .set(ids.ip_text, ui)
-            {
-                use conrod::widget::text_box::Event;
-                match event {
-                    Event::Enter => {}
-                    Event::Update(s) => {}
-                }
-            }
-        }
-
-        if self.selected_os_texture.is_some() {
-            widget::Image::new(self.selected_os_texture.unwrap())
-                .w_h(144.0, 144.0)
-                .down(20.0)
-                .align_middle_x_of(ids.canvas)
-                .set(ids.os_image, ui);
+                .set(ids.tutorial, ui);
         }
     }
 
