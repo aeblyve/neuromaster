@@ -271,11 +271,14 @@ impl ApplicationState {
     pub fn set_os_texture(&mut self) {
         let setting = match self.get_selected_os() {
             None => None,
-            Some(guess) => match guess.unwrap() {
-                OsGuess::LINUX(_) => Some(self.tux_texture),
-                OsGuess::FREEBSD(_) => Some(self.daemon_texture),
-                OsGuess::OPENBSD(_) => Some(self.puffy_texture),
-                OsGuess::OTHER(_) => None,
+            Some(guess_option) => match guess_option {
+                None => None,
+                Some(guess) => match guess {
+                    OsGuess::LINUX(_) => Some(self.tux_texture),
+                    OsGuess::FREEBSD(_) => Some(self.daemon_texture),
+                    OsGuess::OPENBSD(_) => Some(self.puffy_texture),
+                    OsGuess::OTHER(_) => None,
+                },
             },
         };
         self.selected_os_texture = setting;
