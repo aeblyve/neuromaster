@@ -1,25 +1,19 @@
 #![feature(fn_traits)]
 
-use bimap::BiMap;
 use fdg_sim::petgraph::graph::NodeIndex;
-use fdg_sim::petgraph::stable_graph::EdgeIndex;
 use kiss3d::camera::*;
 use kiss3d::conrod;
+use kiss3d::conrod::image;
 use kiss3d::event::{Action, WindowEvent};
 use kiss3d::light::Light;
-use kiss3d::nalgebra::Point3;
-use kiss3d::nalgebra::{UnitQuaternion, Vector3};
+use kiss3d::nalgebra::{Point2, Point3, Translation3, UnitQuaternion, Vector2, Vector3};
 use kiss3d::resource::TextureManager;
 use kiss3d::scene::SceneNode;
 use kiss3d::window::Window;
-use macroquad::prelude::*;
 use rust_nmap::parse_nmap_xml_bytes;
 use std::collections::HashMap;
-use std::path::Path;
-use std::rc::Rc;
 
 use fdg_sim::Simulation;
-use kiss3d::conrod::color::Color;
 use kiss3d::conrod::position::Positionable;
 use kiss3d::conrod::widget_ids;
 
@@ -30,14 +24,17 @@ mod simulation;
 const SELECTED_COLOR: (f32, f32, f32) = (0.0, 0.0, 1.0);
 const DEFAULT_COLOR: (f32, f32, f32) = (1.0, 0.0, 0.0);
 
+const TEXT_COLOR: Point3<f32> = Point3::new(1.0, 1.0, 1.0);
+const LINE_COLOR: Point3<f32> = Point3::new(0.0, 1.0, 0.0);
+
 const NODE_RADIUS: f32 = 1.0;
 
 trait WindowExt {
-    fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> kiss3d::conrod::image::Id;
+    fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> image::Id;
 }
 
 impl WindowExt for Window {
-    fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> kiss3d::conrod::image::Id {
+    fn alloc_conrod_texture(&mut self, bytes: &[u8], name: &str) -> image::Id {
         TextureManager::get_global_manager(|tm| tm.add_image_from_memory(bytes, name));
         self.conrod_texture_id(name).unwrap()
     }
@@ -74,7 +71,6 @@ fn main() {
     let mut camera = kiss3d::camera::ArcBall::new(Point3::new(0.0f32, 0.0, -1.0), Point3::origin());
     window.set_light(Light::StickToCamera);
 
-    // build nodes
     for node_index in simulation.get_graph().node_indices() {
         let scene_node = wireframe_sphere(&mut window);
         node_map.insert(node_index, scene_node);
@@ -101,7 +97,9 @@ fn main() {
         daemon_texture,
     );
 
-    let mut last_pos = kiss3d::nalgebra::Point2::new(0.0f32, 0.0f32);
+    let mut last_pos = Point2::new(0.0f32, 0.0f32);
+    let mut window_size = Vector2::new(0.0, 0.0);
+    let font = kiss3d::text::Font::default();
     {
         let mut ui = window.conrod_ui_mut().set_widgets();
         application_state.gui(&mut ui, &ids);
@@ -113,13 +111,10 @@ fn main() {
                     println!("Frame buffer is {}x{}. Resizing.", x, y);
                     let mut ui = window.conrod_ui_mut().set_widgets();
                     application_state.gui(&mut ui, &ids);
+                    window_size = Vector2::new(x as f32, y as f32);
                 }
                 WindowEvent::MouseButton(button, Action::Press, modif) => {
                     println!("Mouse press event on {:?} with {:?}", button, modif);
-                    let window_size = kiss3d::nalgebra::Vector2::new(
-                        window.size()[0] as f32,
-                        window.size()[1] as f32,
-                    );
                     let (ray_origin, ray_direction) = camera.unproject(&last_pos, &window_size);
 
                     println!(
@@ -131,7 +126,7 @@ fn main() {
                     application_state.gui(&mut ui, &ids);
                 }
                 WindowEvent::CursorPos(x, y, _modif) => {
-                    last_pos = kiss3d::nalgebra::Point2::new(x as f32, y as f32);
+                    last_pos = Point2::new(x as f32, y as f32);
                 }
                 _ => {}
             }
@@ -142,7 +137,7 @@ fn main() {
         for node_index in graph.node_indices() {
             let node_weight = graph.node_weight(node_index).unwrap();
             let scene_node = application_state.node_map.get_mut(&node_index).unwrap();
-            let translation = kiss3d::nalgebra::Translation3::new(
+            let translation = Translation3::new(
                 node_weight.location.x,
                 node_weight.location.y,
                 node_weight.location.z,
@@ -151,19 +146,26 @@ fn main() {
 
             for neighbor_index in graph.neighbors(node_index) {
                 let neighbor_weight = &graph.node_weight(neighbor_index).unwrap();
-                window.draw_line(
-                    &Point3::new(
-                        node_weight.location.x,
-                        node_weight.location.y,
-                        node_weight.location.z,
-                    ),
-                    &Point3::new(
-                        neighbor_weight.location.x,
-                        neighbor_weight.location.y,
-                        neighbor_weight.location.z,
-                    ),
-                    &Point3::new(0.0, 1.0, 0.0),
+                let node_location = &Point3::new(
+                    node_weight.location.x,
+                    node_weight.location.y,
+                    node_weight.location.z,
                 );
+                let neighbor_location = &Point3::new(
+                    neighbor_weight.location.x,
+                    neighbor_weight.location.y,
+                    neighbor_weight.location.z,
+                );
+                window.draw_line(node_location, neighbor_location, &LINE_COLOR);
+                let node_projection = camera.project(node_location, &window_size);
+                // may need to offset a bit
+                // window.draw_text(
+                //     node_weight.data.main_addr.to_string().as_str(),
+                //     &node_projection.into(),
+                //     1.0,
+                //     &font,
+                //     &TEXT_COLOR,
+                // );
             }
         }
     }
