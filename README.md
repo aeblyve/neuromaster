@@ -1,7 +1,7 @@
 # neuromaster
 3D nmap scan visualizer in Rust, aiming to improve on `zenmap`'s built-in `radialnet`-based visualizer, both in graphics performance (for `radialnet` is cpu-rendered) and topology comprehension (for `radialnet` struggles to fit many nodes on screen).
 
-Inspired by the descriptions of "The Matrix" in William Gibson's novel _Neuromancer_.
+Features a simple retro wireframe look, inspired by the descriptions of "The Matrix" in William Gibson's novel _Neuromancer_.
 
 Physics-based force-directed-graph methods are used to draw the visualization from the xml.
 
