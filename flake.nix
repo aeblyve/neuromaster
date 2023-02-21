@@ -25,7 +25,7 @@
 	};
 	toolchain = (pkgs.rustChannelOf {
 	  rustToolchain = ./rust-toolchain.toml;
-	  sha256 = "";
+	  sha256 = "xdqN1O2O9GJ+Jg/Gsdj2Hra1KFQIQpAu4vGczSBsLDo=";
 	}).rust;
         naersk-lib = pkgs.callPackage naersk { 
 	  cargo = toolchain;
