@@ -3,6 +3,8 @@
 
 Inspired by the descriptions of "The Matrix" in William Gibson's Neuromancer.
 
+Physics-based force-directed-graph methods are used to draw the visualization from the xml.
+
 ## usage
 
 neuromaster accepts one optional command line argument, an xml-formatted nmap scan file.
